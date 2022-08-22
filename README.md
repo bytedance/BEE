@@ -28,19 +28,22 @@ ptflops==0.6.5
 
 -----------
 
-Please download the pretrained models here.
+Please download the pretrained models (under folder ``pretrained_models``) and the metric weights (under folder ``Metric``) here [https://pan.baidu.com/s/1vW9emHqqHrDZJ1abS4UCxA](https://pan.baidu.com/s/1vW9emHqqHrDZJ1abS4UCxA) (Extraction code: dwc0).
+
+- Copy Metric/metric_tool/weights to Metric/metric_tool
+
 
 **A single image-->**
 
 ```bash
 # Encode using configuration file
-python3 Encoder/CoreEncApp.py -i org.png -o str.bin --ckptdir checkpoints --target_rate 0.06 --cfg Encoder/AllRecipesFinal_objective.json
+python3 Encoder/CoreEncApp.py -i org.png -o str.bin --ckptdir checkpoints --target_rate 0.06 --cfg Encoder/AllRecipesFinal_objective.json --oldversion
 
 # Encode using a specific checkpoint file
-python3 Encoder/CoreEncApp.py -i org.png -o str.bin --ckpt checkpoints/model.ckpt-02 --target_rate 0.06 
+python3 Encoder/CoreEncApp.py -i org.png -o str.bin --ckpt checkpoints/model.ckpt-02 --target_rate 0.06 --oldversion
 
 # Decode
-python3 Decoder/DecApp.py -i str.bin -o rec.png --ckptdir checkpoints 
+python3 Decoder/DecApp.py -i str.bin -o rec.png --ckptdir checkpoints --oldversion
 ```
 
 > Note: put all 16 models under folder checkpoints and rename them to model.ckpt-{k:02d}, k = [1,2,...16]
@@ -49,13 +52,13 @@ python3 Decoder/DecApp.py -i str.bin -o rec.png --ckptdir checkpoints
 
 ```bash
 # Encode using configuration file
-python3 Encoder/CoreEncApp.py --inputPath ./org --outputPath ./bin --ckptdir checkpoints --target_rate 0.06 --cfg Encoder/AllRecipesFinal_objective.json
+python3 Encoder/CoreEncApp.py --inputPath ./org --outputPath ./bin --ckptdir checkpoints --target_rate 0.06 --cfg Encoder/AllRecipesFinal_objective.json --oldversion
 
 # Encode using a specific checkpoint file
-python3 Encoder/CoreEncApp.py --inputPath ./org --outputPath ./bin --ckpt checkpoints/model.ckpt-02 --target_rate 0.06 
+python3 Encoder/CoreEncApp.py --inputPath ./org --outputPath ./bin --ckpt checkpoints/model.ckpt-02 --target_rate 0.06 --oldversion
 
 # Decode
-python3 Decoder/DecApp.py --binpath ./bin --recpath ./rec --ckptdir checkpoints 
+python3 Decoder/DecApp.py --binpath ./bin --recpath ./rec --ckptdir checkpoints --oldversion
 ```
 
 ### Training
