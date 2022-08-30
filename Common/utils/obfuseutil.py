@@ -50,6 +50,7 @@ if __name__ == "__main__":
     args = sys.argv[1:]
     modelDir = "ModelDirectory"
     decModelDir = "DecModelDirectory"
+
     if args:
         modelDir = args[0]
         decModelDir = args[1]
