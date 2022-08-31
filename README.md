@@ -28,7 +28,7 @@ ptflops==0.6.5
 
 -----------
 
-Please download the pretrained models (under folder ``pretrained_models``) and the metric weights (under folder ``Metric``) here [https://pan.baidu.com/s/1vW9emHqqHrDZJ1abS4UCxA](https://pan.baidu.com/s/1vW9emHqqHrDZJ1abS4UCxA) (Extraction code: dwc0).
+Please download the pretrained models **[updated on Aug 30, 2022]** (under folder ``pretrained_models``) and the metric weights (under folder ``Metric``) here [https://pan.baidu.com/s/1vW9emHqqHrDZJ1abS4UCxA](https://pan.baidu.com/s/1vW9emHqqHrDZJ1abS4UCxA) (Extraction code: dwc0).
 
 - Copy Metric/metric_tool/weights to Metric/metric_tool
 
@@ -37,28 +37,26 @@ Please download the pretrained models (under folder ``pretrained_models``) and t
 
 ```bash
 # Encode using configuration file
-python3 Encoder/CoreEncApp.py -i org.png -o str.bin --ckptdir checkpoints --target_rate 0.06 --cfg Encoder/AllRecipesFinal_objective.json --oldversion
+python3 Encoder/CoreEncApp.py -i IEEE1857TestSet/01.png -o str.bin --ckptdir pretrained_models/objective/enc_model --qp 46 --cfg Encoder/IEEE_AllRecipes_Objective.json --oldversion
 
 # Encode using a specific checkpoint file
-python3 Encoder/CoreEncApp.py -i org.png -o str.bin --ckpt checkpoints/model.ckpt-02 --target_rate 0.06 --oldversion
+python3 Encoder/CoreEncApp.py -i IEEE1857TestSet/01.png -o str.bin --ckpt pretrained_models/objective/enc_model/quant_model.ckpt-02 --qp 46 --oldversion
 
 # Decode
-python3 Decoder/DecApp.py -i str.bin -o rec.png --ckptdir checkpoints --oldversion
+python3 Decoder/DecApp.py -i bitstreams/str.bin -o rec.png --ckptdir pretrained_models/objective/dec_model --oldversion
 ```
-
-> Note: put all 16 models under folder checkpoints and rename them to model.ckpt-{k:02d}, k = [1,2,...16]
 
 **All images under a folder-->**
 
 ```bash
 # Encode using configuration file
-python3 Encoder/CoreEncApp.py --inputPath ./org --outputPath ./bin --ckptdir checkpoints --target_rate 0.06 --cfg Encoder/AllRecipesFinal_objective.json --oldversion
+python3 Encoder/CoreEncApp.py --inputPath ./IEEE1857TestSet --outputPath ./bin --ckptdir pretrained_models/objective/enc_model --qp 46 --cfg Encoder/IEEE_AllRecipes_Objective.json --oldversion
 
 # Encode using a specific checkpoint file
-python3 Encoder/CoreEncApp.py --inputPath ./org --outputPath ./bin --ckpt checkpoints/model.ckpt-02 --target_rate 0.06 --oldversion
+python3 Encoder/CoreEncApp.py --inputPath ./IEEE1857TestSet --outputPath ./bin --ckpt pretrained_models/objective/enc_model/quant_model.ckpt-02 --qp 46 --oldversion
 
 # Decode
-python3 Decoder/DecApp.py --binpath ./bin --recpath ./rec --ckptdir checkpoints --oldversion
+python3 Decoder/DecApp.py --binpath ./bin --recpath ./rec --ckptdir pretrained_models/objective/dec_model --oldversion
 ```
 
 ### Training
