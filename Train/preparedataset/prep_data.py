@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
     out_path = "./cropped_training_set"
     mkdir(out_path)
-    img_list = get_imgs("./JPEG-AI-Dataset/training_set")
+    img_list = get_imgs("./data/test")
     print(f"Total number of images {len(img_list)}.")
 
     # Random crop

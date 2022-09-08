@@ -65,21 +65,21 @@ python3 Decoder/DecApp.py --binpath ./bin --recpath ./rec --ckptdir pretrained_m
 
 Stage1 training example:
 ```bash
-bash Train/trainYUV.sh -c Train/cfg/TrainConfigStage1 --quality 2 --checkpoint Stage1/Q2 
+python3 Train/run.py Train/trainYUV.sh -c Train/cfg/TrainConfigStage1 --quality 2 --checkpoint Stage1/Q2 
 ```
 
 > Note: --quality could be one from [2, 4, 6, 8, 10]
 
 Stage2 training example:
 ```bash
-bash Train/trainYUV.sh -c Train/cfg/TrainConfigStage2 --quality 2 --InitModel Stage1/Q2/best.pth --checkpoint Stage2/Q2 --learning_rate 1e-5 
+python3 Train/run.py Train/trainYUV.sh -c Train/cfg/TrainConfigStage2 --quality 2 --InitModel Stage1/Q2/best.pth --checkpoint Stage2/Q2 --learning_rate 1e-5 
 ```
 
 > Note: --InitModel is the pretrained model from Stage1, choose --quality from [2, 4, 6, 8, 10]
 
 Stage3 training example:
 ```bash
-bash Train/trainYUV.sh -c Train/cfg/TrainConfigStage3 --quality 1 --InitModel Stage2/Q2/best.pth --checkpoint Stage3/Q1 --learning_rate 1e-5 
+python3 Train/run.py Train/trainYUV.sh -c Train/cfg/TrainConfigStage3 --quality 1 --InitModel Stage2/Q2/best.pth --checkpoint Stage3/Q1 --learning_rate 1e-5 
 ```
 
 > Note: choose --quality from [1, 3, 5, 7, 9, 11, 12, 13, 14, 15, 16]
