@@ -1,0 +1,27 @@
+[Defaults]
+model = quantyuv444-decoupled
+epochs = 500
+learning_rate = 1e-4
+num_workers = 8
+lmbda = 0
+batch_size = 8
+test_batch_size = 1
+aux_learning_rate = 1e-3
+patch_size = 256
+quality = 3
+cuda = True
+save = True
+loadmodel = No
+clip_max_norm = 1.0
+metric = mse
+checkpoint = TempCkpt
+PretrainModel = PretrainedCkpt/
+trainpath = lmdbdata/jpegai256x256_lmdb
+evalpath = lmdbdata/jpeg_ai_CTC_test_lmdb
+k_msssim = 0.5
+k_mse = 0.5
+k_nlpd = 0
+k_fsim = 0
+k_vif = 0
+k_iwssim = 0
+YUV = 111

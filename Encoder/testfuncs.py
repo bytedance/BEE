@@ -1,17 +1,3 @@
-# Copyright 2022 Bytedance Inc.
-
-# Licensed under the Apache License, Version 2.0 (the "License"); 
-# you may not use this file except in compliance with the License. 
-# You may obtain a copy of the License at 
-
-#     http://www.apache.org/licenses/LICENSE-2.0 
-
-# Unless required by applicable law or agreed to in writing, software 
-# distributed under the License is distributed on an "AS IS" BASIS, 
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-# See the License for the specific language governing permissions and 
-# limitations under the License. 
-
 import os
 import struct
 import time
@@ -170,13 +156,13 @@ def savetimeinfo(enctime, dectime, args):
     return timeinfo
 
 
-def construct_weights(json_file,qp,image_name, org_h = None, org_w = None, GAN=False):
+def construct_weights(json_file,rate,image_name, org_h = None, org_w = None, GAN=False):
     r'''
     looks into the json file. if image_name and rate matches for an entry, the recipe is loaded. 
     the recipe can be partial, missing entries are loaded as defaults.
     '''
-    qp2quality = {22: 6, 28: 4, 34: 3, 40: 2, 46: 1}
-    quality_mapped = qp2quality[qp]
+    rate2quality = {0.75: 6, 0.5: 4, 0.25: 3, 0.12: 2, 0.06: 1}
+    quality_mapped = rate2quality[rate]
     initial_weights = prepare_weights(quality_mapped,org_h,org_w)
     if org_h is not None and org_w is not None:
         initial_weights['resized_size'] = [org_h, org_w]
@@ -184,7 +170,7 @@ def construct_weights(json_file,qp,image_name, org_h = None, org_w = None, GAN=F
     initial_weights['model_idx'] = 16 - (quality_mapped * 2 if quality_mapped<6 else 10)
     if GAN:
         initial_weights['model_idx'] = 2  # Tentatively, use the middle one
-    initial_weights['QP'] = qp
+    initial_weights['rate'] = rate
     initial_weights['numRefIte'] = 1
 
 
@@ -194,7 +180,7 @@ def construct_weights(json_file,qp,image_name, org_h = None, org_w = None, GAN=F
         with open(json_file) as json_file:
             data = json.load(json_file)
             for d in data:
-                if d["image"] == image_name and d['qp']==qp:
+                if d["image"] == image_name and d['rate']==rate:
                     partial_weights = d
 
     if partial_weights == []:
@@ -437,13 +423,13 @@ def read_weights(f):
 
 
 def enc_adap(image, model, metric, coder, output, ckpt, numRefIte=0, im=None, net=None,
-             resized_size=None, QP=None, device="cuda", recipe=None, oldversion=False):
+             resized_size=None, target_rate=None, device="cuda", recipe=None, oldversion=False):
     """
     - resized_size: (height, width)
     """
-    qp2quality = {22: 6, 28: 4, 34: 3, 40: 2, 46: 1}
-    quality_mapped = qp2quality[QP]
+    rate2quality = {0.75: 6, 0.5: 4, 0.25: 3, 0.12: 2, 0.06: 1}
     quality = int(ckpt.split('ckpt-')[-1])
+    quality_mapped = rate2quality[target_rate]
 
     Common.set_entropy_coder(coder)
     enc_start = time.time()
@@ -515,6 +501,55 @@ def clear_trash(file_list):
         if os.path.exists(file):
             os.system(f"rm {file}")
 
+
+def resizeCandOld(image, model, metric, coder, bitstream, ModelList, lower_bound, step,
+               numRefIte, target_rate, recipe, device):
+    w0, h0 = Image.open(image).convert("RGB").size
+    candidates = []
+    for k, ckpt in enumerate(ModelList):
+        bpp, _, _ = enc_adap(image, model, metric, coder, bitstream, ckpt, numRefIte,
+                             None, None, (h0, w0), target_rate, device, recipe=recipe)
+        # torch.cuda.reset_max_memory_allocated()
+        torch.cuda.empty_cache()
+
+        if bpp < lower_bound * target_rate:
+            if k == 0:
+                raise ValueError(
+                    f"Target rate range is [{lower_bound * target_rate:.3f}, {target_rate * 1.1:.3f}], "
+                    f"however the models can only produce maximum rate of {bpp:.3f}.")
+            break
+        elif bpp > target_rate * 1.5 and k != len(ModelList) - 1:
+            continue
+        elif bpp > target_rate * 1.1:
+            reduce_width = True if w0 > h0 else False
+            if reduce_width:
+                w = w0 // step * step
+                h = int(round(w / w0 * h0))
+            else:
+                h = h0 // step * step
+                w = int(round(h / h0 * w0))
+            while h >= 160 and w >= 160:
+                resized_size = (h, w)
+                bpp, _, _ = enc_adap(image, model, metric, coder, bitstream, ckpt, numRefIte, None,
+                                     None, resized_size, target_rate, device, recipe)
+                # torch.cuda.reset_max_memory_allocated()
+                torch.cuda.empty_cache()
+                if bpp < lower_bound * target_rate:
+                    break
+                elif bpp < 1.1 * target_rate:
+                    candidates.append([k, resized_size])
+                    print("candidate ", [k, resized_size], " is added.")
+
+                # reduce size
+                if reduce_width:
+                    w -= step
+                    h = int(round(w / w0 * h0))
+                else:
+                    h -= step
+                    w = int(round(h / h0 * w0))
+        else:
+            candidates.append([k, (h0, w0)])
+    return candidates
 
 
 def get_size(org_size, ratio):

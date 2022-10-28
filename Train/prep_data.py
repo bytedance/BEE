@@ -1,16 +1,3 @@
-# Copyright 2022 Bytedance Inc.
-
-# Licensed under the Apache License, Version 2.0 (the "License"); 
-# you may not use this file except in compliance with the License. 
-# You may obtain a copy of the License at 
-
-#     http://www.apache.org/licenses/LICENSE-2.0 
-
-# Unless required by applicable law or agreed to in writing, software 
-# distributed under the License is distributed on an "AS IS" BASIS, 
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-# See the License for the specific language governing permissions and 
-# limitations under the License. 
 
 """
 # Description:
@@ -86,7 +73,7 @@ if __name__ == '__main__':
 
     out_path = "./cropped_training_set"
     mkdir(out_path)
-    img_list = get_imgs("./data/test")
+    img_list = get_imgs("./JPEG-AI-Dataset/training_set")
     print(f"Total number of images {len(img_list)}.")
 
     # Random crop

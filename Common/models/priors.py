@@ -1,17 +1,3 @@
-# Copyright 2022 Bytedance Inc.
-
-# Licensed under the Apache License, Version 2.0 (the "License"); 
-# you may not use this file except in compliance with the License. 
-# You may obtain a copy of the License at 
-
-#     http://www.apache.org/licenses/LICENSE-2.0 
-
-# Unless required by applicable law or agreed to in writing, software 
-# distributed under the License is distributed on an "AS IS" BASIS, 
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-# See the License for the specific language governing permissions and 
-# limitations under the License. 
-
 import math
 
 import torch
@@ -19,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import einops
 
-from Common.ans import BufferedRansEncoder, RansDecoder
+from Common.models.ans import BufferedRansEncoder, RansDecoder
 from Common.models.entropy_models import EntropyBottleneck, GaussianConditional
 from Common.models.quantmodule import quantHSS
 import Common.models.online as on
@@ -374,8 +360,8 @@ class QuantYUV444Decoupled(nn.Module):
         means = means.detach()
         return criterion, updater, optimizer, means
 
-    def y_refiner(self, y, z, x_true_org, quality, totalIte):
-        criterion = on.RateDistortionLoss(quality)
+    def y_refiner_old(self, y, z, x_true_org, quality, totalIte,params,scales_hat):
+        criterion = on.RateDistortionLoss_old(quality)
         updater = on.latentUpdater(y)
         optimizer = torch.optim.Adagrad([{'params': updater.parameters(), 'lr': 0.03}])
         _, _, h, w = x_true_org.shape
@@ -393,6 +379,41 @@ class QuantYUV444Decoupled(nn.Module):
                 optimizer.step()
                 y_best = y.clone()
                 optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr'] / 3
+        return y_best, z
+
+    def y_refiner(self, y, z, x_true_org, quality, totalIte, params,scales_hat):
+        criterion = on.RateDistortionLoss(quality)
+        updater = on.latentUpdater(y)
+        optimizer = torch.optim.Adagrad([{'params': updater.parameters(), 'lr': 0.03}])
+        _, _, h, w = x_true_org.shape
+        y = updater()
+        y_best = y.clone()
+        y_hat = y.clone()
+        loss_best =  10000000000000
+        for i in range(8):
+            with torch.set_grad_enabled(False):
+                _,_,hh,ww = y.shape
+                y_hat = self._compress_ar_scale(y.clone(),params,hh,ww,2,scales_hat, True)
+
+            with torch.set_grad_enabled(True):
+                y_new = y - y.detach() + y_hat.detach()
+                x_hat = self.g_s(y_new)
+                x_hat = self.g_s_extension(x_hat)
+                ctx_params = self.context_prediction(y_new)
+                means_hat = self.entropy_parameters(torch.cat((params.detach(), ctx_params), dim = 1))
+                y_likelihoods = self.gaussian_conditional._likelihood(y, scales_hat, means_hat)
+                if self.gaussian_conditional.use_likelihood_bound:
+                    y_likelihoods = self.gaussian_conditional.likelihood_lower_bound(y_likelihoods)
+                x_hat = crop(x_hat, (h, w))
+                measurements = {"x_hat": x_hat, "likelihoods": {"y": y_likelihoods, "z": []}}
+                loss = criterion(measurements, x_true_org)
+                optimizer.zero_grad()
+                loss["loss"].backward()
+                optimizer.step()
+                if loss_best > loss["loss"].item():
+                    loss_best = loss["loss"].item()
+                    y_best = y.clone()
+                optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr'] / 1.2
         return y_best, z
 
     def _compress_ar_scale_old(self, y_hat, params, height, width, padding, scales_hat):
@@ -1021,10 +1042,7 @@ class QuantYUV444Decoupled(nn.Module):
 
                 x_true_org = crop(yuvd, [h, w])
                 x_true_org = x_true_org.to(device)
-                if x.shape[2] * x.shape[3] < 9000000:
-                    y, z = self.y_refiner(y.clone(), z, x_true_org, quality, numIte)
 
-                ########
                 torch.backends.cudnn.deterministic = True
                 z_strings = self.entropy_bottleneck.compress(z)
                 z_hat = self.entropy_bottleneck.decompress(z_strings, z.size()[-2:])
@@ -1032,6 +1050,11 @@ class QuantYUV444Decoupled(nn.Module):
                 params = self.h_s(z_hat)
                 scales_hat = self.h_s_scale(z_hat)
                 torch.backends.cudnn.deterministic = False if self.DeterminismSpeedup else True
+                if x.shape[2] * x.shape[3] < 9000000:
+                    y, _ = self.y_refiner(y.clone(), z.clone(), x_true_org, quality, numIte,params.clone(),scales_hat.clone())
+
+                ########
+
                 s = 4  # scaling factor between z and y
                 kernel_size = 5  # context prediction kernel size
                 padding = (kernel_size - 1) // 2

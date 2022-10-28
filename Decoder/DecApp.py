@@ -1,30 +1,15 @@
-# Copyright 2022 Bytedance Inc.
-
-# Licensed under the Apache License, Version 2.0 (the "License"); 
-# you may not use this file except in compliance with the License. 
-# You may obtain a copy of the License at 
-
-#     http://www.apache.org/licenses/LICENSE-2.0 
-
-# Unless required by applicable law or agreed to in writing, software 
-# distributed under the License is distributed on an "AS IS" BASIS, 
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-# See the License for the specific language governing permissions and 
-# limitations under the License. 
-
 import sys
 import argparse
 from os.path import abspath, join, dirname, pardir
 sys.path.append(join(abspath(dirname(__file__)),pardir))
 import glob, os
-
+from pathlib import Path
 import torch
 import Common
 from Common.utils.zoo import models
 from Common.utils.testfuncs import dec_adap, print_args, get_device, get_model_list
 
 torch.backends.cudnn.deterministic = True
-
 
 def parse_args(argv):
     parser = argparse.ArgumentParser(description="Decoder arguments parser.")
@@ -82,7 +67,6 @@ def main(argv):
     print_args(args)
     os.system("mkdir "+args.recpath)
     torch.set_num_threads(1)  # just to be sure
-
     if args.binpath is not None:
         dec_times = decodes(args)
     else:
